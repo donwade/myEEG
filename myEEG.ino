@@ -302,6 +302,7 @@ void task_FILTERS( void *parameter)
             uint32_t avg = 0;
             int32_t  mean = 0;
             static bool bFlip;
+            bool bInvalid = false;
 
             digitalWrite(GREEN_LED, bFlip);
             bFlip = !bFlip;
@@ -313,6 +314,7 @@ void task_FILTERS( void *parameter)
             {
                 //if (!(tab++ % 8)) Serial.println();
                 dataIn[k] = (float) taskA2Dbuffer[k];
+                if (taskA2Dbuffer[k] < 100 || taskA2Dbuffer[k] > 4000) bInvalid = true;
                 avg += taskA2Dbuffer[k];
                 //Serial.printf("0x%04X ", taskA2DBuffer[k]);
             }
@@ -336,38 +338,36 @@ void task_FILTERS( void *parameter)
             int gammaRet= gammaV2_filterBlock( gfilterV2, n60hzOut, gammaOut, FFT_N );
             int thetaRet= thetaV2_filterBlock( tfilterV2, n60hzOut, thetaOut, FFT_N );
 
-#if 0
-            for (int k = 1 ; k < FFT_N ; k++)
-            {
-              Serial.printf("%6d %6d %6d %6d \n"
-                    ,taskA2Dbuffer[k]
-                    ,  avg
-                    ,  avg+mean
-                    ,  avg-mean
-              );
-            }
-
-#else
             #define VSCALE 10
-            if (mean < 250)  // if intermittent connection the mean is large.
             {
                 for (int k = 0 ; k < FFT_N ; k++)
                 {
-                  Serial.printf("%6d %6d %6d %6d %6d %6d %6d %6d %d\n" ,
-                        (int32_t) alphaOut[k] / VSCALE      + INTER_LINE_SPACING * 1
-                        ,(int32_t)  betaOut[k]/ VSCALE     + INTER_LINE_SPACING * 2
-                        ,(int32_t) deltaOut[k]/ VSCALE     + INTER_LINE_SPACING * 3
-                        ,(int32_t) gammaOut[k]*3/8 / VSCALE + INTER_LINE_SPACING * 4
-
-                        ,(int32_t) thetaOut[k]/ VSCALE     + INTER_LINE_SPACING * 5
-                        ,taskA2Dbuffer[k]     //    + INTER_LINE_SPACING * 6
-                        ,  avg                  //   + INTER_LINE_SPACING * 6
-                        ,  avg+mean             //   + INTER_LINE_SPACING * 6
-                        ,  avg-mean             //   + INTER_LINE_SPACING * 6
-                        );
+                    if (bInvalid)
+                    Serial.printf("%6d %6d %6d %6d %6d %6d %6d %6d %d\n"
+                          ,taskA2Dbuffer[k]
+                          ,  avg
+                          ,  avg+mean
+                          ,  avg-mean
+                          ,  INTER_LINE_SPACING * 1
+                          ,  INTER_LINE_SPACING * 2
+                          ,  INTER_LINE_SPACING * 3
+                          ,  INTER_LINE_SPACING * 4
+                          ,  INTER_LINE_SPACING * 5
+                          );
+                    else
+                      Serial.printf("%6d %6d %6d %6d %6d %6d %6d %6d %d\n"
+                            ,taskA2Dbuffer[k]
+                            ,  avg
+                            ,  avg+mean
+                            ,  avg-mean
+                            ,(int32_t) alphaOut[k] / VSCALE    + INTER_LINE_SPACING * 1
+                            ,(int32_t)  betaOut[k]/ VSCALE     + INTER_LINE_SPACING * 2
+                            ,(int32_t) deltaOut[k]/ VSCALE     + INTER_LINE_SPACING * 3
+                            ,(int32_t) gammaOut[k]*3/8 / VSCALE + INTER_LINE_SPACING * 4
+                            ,(int32_t) thetaOut[k]/ VSCALE     + INTER_LINE_SPACING * 5
+                            );
                 }
             }
-#endif
 
 #if 0
             Serial.print("Compute Time: ");Serial.print((end-start)*1.0/1000);Serial.println(" milliseconds!");
